@@ -17,7 +17,9 @@ Meta Box plugin helps you easily implement multiple meta boxes in editing pages 
 * Support input types: text, textarea, checkbox, checkbox list, radio box, select, wysiwyg, file, image, date, time, color
 
 [Project page](http://www.deluxeblogtips.com/meta-box-script-for-wordpress/)
+
 [Project on GitHub](https://github.com/rilwis/meta-box)
+
 [Documentation](https://github.com/rilwis/meta-box/wiki)
 
 == Installation ==
