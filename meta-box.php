@@ -3,44 +3,36 @@
 Plugin Name: Meta Box
 Plugin URI: http://www.deluxeblogtips.com/meta-box-script-for-wordpress/
 Description: Create meta box for editing pages in WordPress. Compatible with custom post types since WordPress 3.0. Support input types: text, textarea, checkbox, checkbox list, radio box, select, wysiwyg, file, image, date, time, color
-Version: 4.0
+Version: 4.0.1
 Author: Rilwis
 Author URI: http://www.deluxeblogtips.com
 */
-
-// Script version, used to add version for scripts and styles
-if ( !defined( 'RWMB_VER' ) )
-	define( 'RWMB_VER', '4.0' );
-
-// Define plugin URLs, for fast enqueuing scripts and styles
-if ( !defined( 'RWMB_URL' ) )
-	define( 'RWMB_URL', plugin_dir_url( __FILE__ ) );
-if ( !defined( 'RWMB_JS_URL' ) )
-	define( 'RWMB_JS_URL', trailingslashit( RWMB_URL . 'js' ) );
-if ( !defined( 'RWMB_CSS_URL' ) )
-	define( 'RWMB_CSS_URL', trailingslashit( RWMB_URL . 'css' ) );
-
-// Plugin paths, for including files
-if ( !defined( 'RWMB_DIR' ) )
-	define( 'RWMB_DIR', plugin_dir_path( __FILE__ ) );
-if ( !defined( 'RWMB_INC_DIR' ) )
-	define( 'RWMB_INC_DIR', trailingslashit( RWMB_DIR . 'inc' ) );
-if ( !defined( 'RWMB_FIELDS_DIR' ) )
-	define( 'RWMB_FIELDS_DIR', trailingslashit( RWMB_INC_DIR . 'fields' ) );
-
-// Plugin textdomain
-if ( !defined( 'RWMB_TEXTDOMAIN' ) )
-	define( 'RWMB_TEXTDOMAIN', 'rwmb' );
-
-// Include field classes
-foreach ( glob( RWMB_FIELDS_DIR . '*.php' ) as $file ) {
-	require_once $file;
-}
 
 /**
  * Meta Box Class
  */
 if ( !class_exists( 'RW_Meta_Box' ) ) {
+
+	// Script version, used to add version for scripts and styles
+	define( 'RWMB_VER', '4.0' );
+
+	// Define plugin URLs, for fast enqueuing scripts and styles
+	define( 'RWMB_URL', plugin_dir_url( __FILE__ ) );
+	define( 'RWMB_JS_URL', trailingslashit( RWMB_URL . 'js' ) );
+	define( 'RWMB_CSS_URL', trailingslashit( RWMB_URL . 'css' ) );
+
+	// Plugin paths, for including files
+	define( 'RWMB_DIR', plugin_dir_path( __FILE__ ) );
+	define( 'RWMB_INC_DIR', trailingslashit( RWMB_DIR . 'inc' ) );
+	define( 'RWMB_FIELDS_DIR', trailingslashit( RWMB_INC_DIR . 'fields' ) );
+
+	// Plugin textdomain
+	define( 'RWMB_TEXTDOMAIN', 'rwmb' );
+
+	// Include field classes
+	foreach ( glob( RWMB_FIELDS_DIR . '*.php' ) as $file ) {
+		require_once $file;
+	}
 
 	class RW_Meta_Box {
 
@@ -66,7 +58,7 @@ if ( !class_exists( 'RW_Meta_Box' ) ) {
 			$this->types = array_unique( wp_list_pluck( $this->fields, 'type' ) );
 
 			// Load translation file
-			add_action('plugins_loaded', array( __CLASS__, 'plugins_loaded' ) );
+			add_action( 'plugins_loaded', array( __CLASS__, 'plugins_loaded' ) );
 
 			// Enqueue common scripts and styles
 			add_action( 'admin_print_styles-post.php', array( __CLASS__, 'admin_print_styles' ) );
@@ -98,9 +90,16 @@ if ( !class_exists( 'RW_Meta_Box' ) ) {
 
 		/**
 		 * Load plugin translation
+		 * @link http://wordpress.stackexchange.com/questions/33312/how-to-translate-plural-forms-for-themes-plugins-with-poedit/33314#33314 Translation Tutorial by the author
 		 */
-		static function plugins_loaded( ) {
-			load_plugin_textdomain( RWMB_TEXTDOMAIN, false, basename( RWMB_DIR ) . '/lang/' );
+		static function plugins_loaded( ) {	
+			// l10n translation files
+			$dir		= basename( RWMB_DIR );
+			// in plugins directory
+			$l10n_file	= load_plugin_textdomain( RWMB_TEXTDOMAIN, false, "{$dir}/lang" );
+			// in mu-plugins directory
+			if ( ! $l10n_file )
+				load_muplugin_textdomain( RWMB_TEXTDOMAIN, "{$dir}/lang" );
 		}
 
 		/**
@@ -129,14 +128,20 @@ if ( !class_exists( 'RW_Meta_Box' ) ) {
 		function show( ) {
 			global $post;
 
+			$saved = self::has_been_saved( $post->ID, $this->fields );
+
 			wp_nonce_field( "rwmb-save-{$this->meta_box['id']}", "nonce_{$this->meta_box['id']}" );
             echo '<div class="form-table">'; // AGM!!! Change TABLE to DIV
 
 			foreach ( $this->fields as $field ) {
 				$meta = get_post_meta( $post->ID, $field['id'], !$field['multiple'] );
-				$meta = empty( $meta ) ? $field['std'] : $meta;
 
-				$meta = is_array( $meta ) ? array_map( 'esc_attr', $meta ) : esc_attr( $meta );
+				// Use $field['std'] only when the meta box hasn't been saved (i.e. the first time we run)
+				$meta = ( !$saved && '' === $meta || array( ) === $meta ) ? $field['std'] : $meta;
+
+				// Escape attributes for non-wysiwyg fields
+				if ( $field['type'] != 'wysiwyg' )
+					$meta = is_array( $meta ) ? array_map( 'esc_attr', $meta ) : esc_attr( $meta );
 
 				$begin = self::show_field_begin( $field, $meta );
 
@@ -288,7 +293,7 @@ HTML;
 			$name = $field['id'];
 
 			delete_post_meta( $post_id, $name );
-			if ( $new === '' || $new === array( ) )
+			if ( '' === $new || array( ) === $new )
 				return;
 
 			if ( $field['multiple'] ) {
@@ -403,12 +408,29 @@ HTML;
 		 * @param $status
 		 * @return string
 		 */
-		static function format_response( $message, $status ) {
-			$json = array(
-				'message' => $message,
-				'status' => $status
-			);
-			return json_encode( $json );
+		static function ajax_response( $message, $status ) {
+			$response = array( 'what' => 'meta-box' );
+			$response['data'] = 'error' === $status ? new WP_Error( 'error', $message ) : $message;
+			$x = new WP_Ajax_Response( $response );
+			$x->send( );
+		}
+
+		/**
+		 * Check if meta box has been saved
+		 * This helps saving empty value in meta fields (for text box, check box, etc.)
+		 * @param $post_id
+		 * @param $fields
+		 * @return bool
+		 */
+		static function has_been_saved( $post_id, $fields ) {
+			$saved = false;
+			foreach ( $fields as $field ) {
+				if ( get_post_meta( $post_id, $field['id'], !$field['multiple'] ) ) {
+					$saved = true;
+					break;
+				}
+			}
+			return $saved;
 		}
 	}
 }
