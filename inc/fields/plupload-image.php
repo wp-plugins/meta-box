@@ -1,14 +1,22 @@
 <?php
-if ( ! class_exists( 'RWMB_Plupload_Image_Field' ) ) 
+// Prevent loading this file directly - Busted!
+if( ! class_exists('WP') )
+{
+	header( 'Status: 403 Forbidden' );
+	header( 'HTTP/1.1 403 Forbidden' );
+	exit;
+}
+
+if ( ! class_exists( 'RWMB_Plupload_Image_Field' ) )
 {
 	class RWMB_Plupload_Image_Field extends RWMB_Image_Field
 	{
 		/**
 		 * Add field actions
-		 * 
+		 *
 		 * @return	void
 		 */
-		static function add_actions( ) 
+		static function add_actions( )
 		{
 			parent::add_actions();
 			add_action( 'wp_ajax_plupload_image_upload', array( __CLASS__ , 'handle_upload' ) );
@@ -17,10 +25,10 @@ if ( ! class_exists( 'RWMB_Plupload_Image_Field' ) )
 		/**
 		 * Upload
 		 * Ajax callback function
-		 * 
+		 *
 		 * @return error or (XML-)response
 		 */
-		static function handle_upload () 
+		static function handle_upload ()
 		{
 			header( 'Content-Type: text/html; charset=UTF-8' );
 
@@ -49,7 +57,7 @@ if ( ! class_exists( 'RWMB_Plupload_Image_Field' ) )
 			{
 				$response = new WP_Ajax_Response();
 				wp_update_attachment_metadata( $id, wp_generate_attachment_metadata( $id, $file_attr['file'] ) );
-				if ( isset( $_REQUEST['field_id'] ) ) 
+				if ( isset( $_REQUEST['field_id'] ) )
 				{
 					// Save file ID in meta field
 					add_post_meta( $post_id, $_REQUEST['field_id'], $id, false );
@@ -71,12 +79,12 @@ if ( ! class_exists( 'RWMB_Plupload_Image_Field' ) )
 
 		/**
 		 * Add default value for 'image' field
-		 * 
+		 *
 		 * @param $field
-		 * 
+		 *
 		 * @return array
 		 */
-		static function normalize_field( $field ) 
+		static function normalize_field( $field )
 		{
 			$field['multiple'] = true;
 			return $field;
@@ -84,10 +92,10 @@ if ( ! class_exists( 'RWMB_Plupload_Image_Field' ) )
 
 		/**
 		 * Enqueue scripts and styles
-		 * 
+		 *
 		 * @return void
 		 */
-		static function admin_print_styles() 
+		static function admin_print_styles()
 		{
 			global $post;
 			// Enqueue same scripts and styles as for file field
@@ -104,9 +112,9 @@ if ( ! class_exists( 'RWMB_Plupload_Image_Field' ) )
 				'url'					=> admin_url('admin-ajax.php'),
 				'flash_swf_url'			=> includes_url( 'js/plupload/plupload.flash.swf' ),
 				'silverlight_xap_url'	=> includes_url( 'js/plupload/plupload.silverlight.xap' ),
-				'filters'				=> array( array( 'title' => __( 'Allowed Image Files' ), 'extensions' => 'jpg,gif,png' ) ),
+				'filters'				=> array( array( 'title' => _x( 'Allowed Image Files', 'image upload', RWMB_TEXTDOMAIN ), 'extensions' => 'jpg,gif,png' ) ),
 				'multipart'				=> true,
-				'urlstream_upload'		=> true,			
+				'urlstream_upload'		=> true,
 				// additional post data to send to our ajax hook
 				'multipart_params'		=> array(
 					'_ajax_nonce'	=> wp_create_nonce( 'plupload_image' ),
@@ -115,38 +123,12 @@ if ( ! class_exists( 'RWMB_Plupload_Image_Field' ) )
 				)
 
 			));
-			
+
 			//Links to loading and error images to allow preloading
 			wp_localize_script('rwmb-plupload-image','rwmb_plupload_status_icons', array(
 				'error' =>  RWMB_URL . "img/image-error.gif",
 				'loading' =>  RWMB_URL . "img/image-loading.gif"
 			));
-		}
-
-		/**
-		 * Show the label, or full width (if $field['name'] not set)
-		 * 
-		 * @param string $html
-		 * @param array $meta
-		 * @param array $field
-		 * 
-		 * @return null/string $html
-		 */
-		static function begin_html( $html, $meta, $field )
-		{
-			if ( 
-				! isset( $field['name'] )
-				OR empty( $field['name'] )
-			)
-				return;
-
-			$html = <<<HTML
-<div class="rwmb-label">
-	<label for="{$field['id']}">{$field['name']}</label>
-</div>
-<div class="rwmb-input">
-HTML;
-			return $html;
 		}
 
 		/**
@@ -158,7 +140,7 @@ HTML;
 		 *
 		 * @return string
 		 */
-		static function html( $html, $meta, $field ) 
+		static function html( $html, $meta, $field )
 		{
 			global $wpdb;
 
@@ -171,74 +153,48 @@ HTML;
 			$i18n_edit		= _x( 'Edit', 'image upload', RWMB_TEXTDOMAIN );
 			$i18n_title		= _x( 'Upload files', 'image upload', RWMB_TEXTDOMAIN );
 			$i18n_more		= _x( 'Add another file', 'image upload', RWMB_TEXTDOMAIN );
+
 			// Filter to change the drag & drop box background string
 			$i18n_drop		= apply_filters( 'rwmb_upload_drop_string', _x( 'Drop images here', 'image upload', RWMB_TEXTDOMAIN ) );
-			$i18n_select	= _x( 'Select Files', RWMB_TEXTDOMAIN );
-			$img_prefix		= "{$field['id']}";
+			$i18n_or        = _x( 'or', 'image upload', RWMB_TEXTDOMAIN );
+			$i18n_select	= _x( 'Select Files', 'image upload', RWMB_TEXTDOMAIN );
+			$img_prefix		= $field['id'];
 
 			$html  = wp_nonce_field( "rwmb-delete-file_{$field['id']}", "nonce-delete-file_{$field['id']}", false, false );
 			$html .= wp_nonce_field( "rwmb-reorder-images_{$field['id']}", "nonce-reorder-images_{$field['id']}", false, false );
 			$html .= "<input type='hidden' class='field-id rwmb-image-prefix' value='{$field['id']}' />";
 
-			// Re-arrange images with 'menu_order', thanks Onur
-			if ( ! empty( $meta ) ) 
+			//Uploaded images
+			$html .= "<div id='{$img_prefix}-container'>";
+			$html .= "<h4 class='rwmb-uploaded-title'>{$i18n_msg}</h4>";
+			$html .= "<ul class='rwmb-images rwmb-uploaded'>";
+
+			foreach ( $meta as $image )
 			{
-				$html .= "<div id='{$img_prefix}-container'>";
-				$html .= "<h4 class='rwmb-uploaded-title'>{$i18n_msg}</h4>";
-				$html .= "<ul class='rwmb-images rwmb-uploaded'>";
-
-				$meta	= implode( ',', $meta );
-				// Need to suppress errors if there are no images to far
-				if ( 
-					empty( $meta ) 
-					AND ( defined('WP_DEBUG') AND WP_DEBUG )
-					AND ( defined('WP_DEBUG_DISPLAY') AND WP_DEBUG_DISPLAY ) 
-				)
-					$wpdb->suppress_errors = true;
-
-				$images	= $wpdb->get_col( "
-					SELECT ID 
-					FROM $wpdb->posts
-					WHERE post_type = 'attachment'
-					AND ID in ($meta)
-					ORDER BY menu_order 
-					ASC
-				" );
-
-				// Move debug back in to not interrupt other debug stuff from other plugins
-				if ( 
-					defined('WP_DEBUG') 
-					AND WP_DEBUG
-				)
-					$wpdb->suppress_errors = false;
-
-				foreach ( $images as $image ) 
-				{
-					$src = wp_get_attachment_image_src( $image, 'thumbnail' );
-					$src = $src[0];
-					$link = get_edit_post_link( $image );
-
-					$html .= "
-					<li id='item_{$image}'>
-						<img src='{$src}' />
-						<div class='rwmb-image-bar'>
-							<a title='{$i18n_edit}' class='rwmb-edit-file' href = '{$link}' >{$i18n_edit}</a> | 
-							<a title='{$i18n_del_file}' class='rwmb-delete-file' href='#' rel='{$image}'>{$i18n_delete}</a>
-						</div>
-					</li>";
-				}
-
+				$src = wp_get_attachment_image_src( $image, 'thumbnail' );
+				$src = $src[0];
+				$link = get_edit_post_link( $image );
 
 				$html .= "
-				<li id='item_' class='hidden rwmb-image-template'>
-					<img id='' class='rwmb-image' src='' />
-					<div class='rwmb-image-bar hidden'>
-						<a title='{$i18n_edit}' class='rwmb-edit-file' href = ''>{$i18n_edit}</a> | 
-						<a title='{$i18n_del_file}' class='rwmb-delete-file' href='#' rel=''>{$i18n_delete}</a>
+				<li id='item_{$image}'>
+					<img src='{$src}' />
+					<div class='rwmb-image-bar'>
+						<a title='{$i18n_edit}' class='rwmb-edit-file' href='{$link}' target='_blank'>{$i18n_edit}</a> |
+						<a title='{$i18n_del_file}' class='rwmb-delete-file' href='#' rel='{$image}'>{$i18n_delete}</a>
 					</div>
 				</li>";
-				$html .= '</ul>';
 			}
+
+			//Template image node
+			$html .= "
+			<li id='item_' class='hidden rwmb-image-template'>
+				<img id='' class='rwmb-image' src='' />
+				<div class='rwmb-image-bar hidden'>
+					<a title='{$i18n_edit}' class='rwmb-edit-file' href = ''>{$i18n_edit}</a> |
+					<a title='{$i18n_del_file}' class='rwmb-delete-file' href='#' rel=''>{$i18n_delete}</a>
+				</div>
+			</li>";
+			$html .= '</ul>';
 
 			// Show form upload
 			$html .= "
@@ -246,7 +202,7 @@ HTML;
 			<div id='{$img_prefix}-dragdrop' class='rwmb-drag-drop hide-if-no-js'>
 				<div class = 'rwmb-drag-drop-inside'>
 					<p>{$i18n_drop}</p>
-					<p>or</p>
+					<p>{$i18n_or}</p>
 					<p><input id='{$img_prefix}-browse-button' type='button' value='{$i18n_select}' class='button' /></p>
 				</div>
 			</div>";

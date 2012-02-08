@@ -1,14 +1,22 @@
 <?php
-if ( ! class_exists( 'RWMB_Image_Field' ) ) 
+// Prevent loading this file directly - Busted!
+if( ! class_exists('WP') )
 {
-	class RWMB_Image_Field extends RWMB_File_Field 
+	header( 'Status: 403 Forbidden' );
+	header( 'HTTP/1.1 403 Forbidden' );
+	exit;
+}
+
+if ( ! class_exists( 'RWMB_Image_Field' ) )
+{
+	class RWMB_Image_Field extends RWMB_File_Field
 	{
 		/**
 		 * Enqueue scripts and styles
-		 * 
+		 *
 		 * @return void
 		 */
-		static function admin_print_styles() 
+		static function admin_print_styles()
 		{
 			// Enqueue same scripts and styles as for file field
 			parent::admin_print_styles();
@@ -20,10 +28,10 @@ if ( ! class_exists( 'RWMB_Image_Field' ) )
 
 		/**
 		 * Add actions
-		 * 
+		 *
 		 * @return void
 		 */
-		static function add_actions() 
+		static function add_actions()
 		{
 			// Do same actions as file field
 			parent::add_actions();
@@ -34,10 +42,10 @@ if ( ! class_exists( 'RWMB_Image_Field' ) )
 
 		/**
 		 * Ajax callback for reordering images
-		 * 
+		 *
 		 * @return void
 		 */
-		static function wp_ajax_reorder_images() 
+		static function wp_ajax_reorder_images()
 		{
 			$post_id  = isset( $_POST['post_id'] ) ? intval( $_POST['post_id'] ) : 0;
 			$field_id = isset( $_POST['field_id'] ) ? $_POST['field_id'] : 0;
@@ -48,7 +56,7 @@ if ( ! class_exists( 'RWMB_Image_Field' ) )
 			parse_str( $order, $items );
 			$items = $items['item'];
 			$order = 1;
-			foreach ( $items as $item ) 
+			foreach ( $items as $item )
 			{
 				wp_update_post( array(
 					'ID'          => $item,
@@ -69,16 +77,14 @@ if ( ! class_exists( 'RWMB_Image_Field' ) )
 		 *
 		 * @return string
 		 */
-		static function html( $html, $meta, $field ) 
+		static function html( $html, $meta, $field )
 		{
 			global $wpdb;
-
-			if ( ! is_array( $meta ) )
-				$meta = (array) $meta;
 
 			$i18n_msg      = _x( 'Uploaded files', 'image upload', RWMB_TEXTDOMAIN );
 			$i18n_del_file = _x( 'Delete this file', 'image upload', RWMB_TEXTDOMAIN );
 			$i18n_delete   = _x( 'Delete', 'image upload', RWMB_TEXTDOMAIN );
+			$i18n_edit     = _x( 'Edit', 'image upload', RWMB_TEXTDOMAIN );
 			$i18n_title    = _x( 'Upload files', 'image upload', RWMB_TEXTDOMAIN );
 			$i18n_more     = _x( 'Add another file', 'image upload', RWMB_TEXTDOMAIN );
 
@@ -86,28 +92,24 @@ if ( ! class_exists( 'RWMB_Image_Field' ) )
 			$html .= wp_nonce_field( "rwmb-reorder-images_{$field['id']}", "nonce-reorder-images_{$field['id']}", false, false );
 			$html .= "<input type='hidden' class='field-id' value='{$field['id']}' />";
 
-			// Re-arrange images with 'menu_order', thanks Onur
-			if ( ! empty( $meta ) ) 
+			// Uploaded images
+			if ( ! empty( $meta ) )
 			{
 				$html .= "<h4>{$i18n_msg}</h4>";
 				$html .= "<ul class='rwmb-images rwmb-uploaded'>";
 
-				$meta = implode( ',', $meta );
-				$images = $wpdb->get_col( "
-					SELECT ID FROM $wpdb->posts
-					WHERE post_type = 'attachment'
-					AND ID in ($meta)
-					ORDER BY menu_order ASC
-				" );
-
-				foreach ( $images as $image ) 
+				foreach ( $meta as $image )
 				{
 					$src = wp_get_attachment_image_src( $image, 'thumbnail' );
 					$src = $src[0];
+					$link = get_edit_post_link( $image );
 
 					$html .= "<li id='item_{$image}'>
 						<img src='{$src}' />
-						<a title='{$i18n_del_file}' class='rwmb-delete-file' href='#' rel='{$image}'>{$i18n_delete}</a>
+						<div class='rwmb-image-bar'>
+							<a title='{$i18n_edit}' class='rwmb-edit-file' href='{$link}' target='_blank'>{$i18n_edit}</a> |
+							<a title='{$i18n_del_file}' class='rwmb-delete-file' href='#' rel='{$image}'>{$i18n_delete}</a>
+						</div>
 					</li>";
 				}
 
@@ -123,6 +125,38 @@ if ( ! class_exists( 'RWMB_Image_Field' ) )
 			</div>";
 
 			return $html;
+		}
+
+		/**
+		 * Standard meta retrieval
+		 *
+		 * @param mixed 	$meta
+		 * @param int		$post_id
+		 * @param array  	$field
+		 * @param bool  	$saved
+		 *
+		 * @return mixed
+		 */
+		static function meta( $meta, $post_id, $saved, $field )
+		{
+			global $wpdb;
+			
+			$meta = RW_Meta_Box::meta( $meta, $post_id, $saved, $field );
+			
+			if ( empty( $meta ) )
+				return array();
+			
+			$meta = implode( ',' , $meta );
+			
+			// Re-arrange images with 'menu_order', thanks Onur
+			$meta = $wpdb->get_col( "
+				SELECT ID FROM {$wpdb->posts}
+				WHERE post_type = 'attachment'
+				AND ID in ({$meta})
+				ORDER BY menu_order ASC
+			" );
+
+			return (array) $meta;
 		}
 	}
 }

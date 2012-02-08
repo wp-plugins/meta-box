@@ -3,7 +3,7 @@ Contributors: rilwis, franz-josef-kaiser, Omnicia, erodesign, funkedgeek, PerWik
 Donate link: http://goo.gl/EWjsD
 Tags: meta-box, custom-fields, custom-field, meta, meta-boxes
 Requires at least: 3.0
-Tested up to: 3.3
+Tested up to: 3.3.1
 Stable tag: trunk
 
 Meta Box plugin helps you easily implement multiple meta boxes in editing pages in WordPress. It works with custom post types and supports various field types.
@@ -20,9 +20,9 @@ Meta Box Script for WordPress is a WordPress plugin that provides an API for you
 
 [Project on GitHub](https://github.com/rilwis/meta-box)
 
-[Documentation](https://github.com/rilwis/meta-box/wiki)
+[Documentation](https://meta-box.tenderapp.com/kb/)
 
-[SUPPORT](https://meta-box.tenderapp.com)
+[Support](https://meta-box.tenderapp.com)
 
 == Installation ==
 
@@ -39,8 +39,15 @@ To change meta box definition, please see comments in `demo.php`.
 == Frequently Asked Questions ==
 
 == Screenshots ==
+1. Basic fields
+2. Advanced fields
 
 == Changelog ==
+
+= 4.1.1 =
+* Fix translation
+* Change jQueryUI theme to 'smoothness'
+* Add more demos in the `demo` folder
 
 = 4.1 =
 * Added jQuery UI slider field

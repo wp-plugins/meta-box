@@ -1,4 +1,11 @@
 <?php
+// Prevent loading this file directly - Busted!
+if( ! class_exists('WP') ) 
+{
+	header( 'Status: 403 Forbidden' );
+	header( 'HTTP/1.1 403 Forbidden' );
+	exit;
+}
 
 if ( ! class_exists( 'RWMB_Color_Field' ) ) 
 {
@@ -28,9 +35,10 @@ if ( ! class_exists( 'RWMB_Color_Field' ) )
 		{
 			if ( empty( $meta ) )
 				$meta = '#';
+			$name = "name='{$field['field_name']}'";
 
 			$html = <<<HTML
-<input class="rwmb-color" type="text" name="{$field['id']}" id="{$field['id']}" value="{$meta}" size="8" />
+<input class="rwmb-color" type="text" {$name} id="{$field['id']}" value="{$meta}" size="8" />
 <a href="#" class="rwmb-color-select" rel="{$field['id']}">%s</a>
 <div class="rwmb-color-picker" rel="{$field['id']}"></div>
 HTML;
