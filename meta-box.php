@@ -1,15 +1,16 @@
 <?php
 /*
 Plugin Name: Meta Box
-Plugin URI: http://www.deluxeblogtips.com/meta-box-script-for-wordpress/
+Plugin URI: http://www.deluxeblogtips.com/meta-box
 Description: Create meta box for editing pages in WordPress. Compatible with custom post types since WP 3.0
-Version: 4.1.1
+Version: 4.1.2
 Author: Rilwis
 Author URI: http://www.deluxeblogtips.com
 License: GPL2+
 */
+
 // Prevent loading this file directly - Busted!
-if( ! class_exists('WP') )
+if ( ! class_exists( 'WP' ) )
 {
 	header( 'Status: 403 Forbidden' );
 	header( 'HTTP/1.1 403 Forbidden' );
@@ -20,7 +21,7 @@ if( ! class_exists('WP') )
 if ( ! class_exists( 'RW_Meta_Box' ) )
 {
 	// Script version, used to add version for scripts and styles
-	define( 'RWMB_VER', '4.1.1' );
+	define( 'RWMB_VER', '4.1.2' );
 
 	// Define plugin URLs, for fast enqueuing scripts and styles
 	if ( ! defined( 'RWMB_URL' ) )
@@ -34,9 +35,6 @@ if ( ! class_exists( 'RW_Meta_Box' ) )
 	define( 'RWMB_INC_DIR', trailingslashit( RWMB_DIR . 'inc' ) );
 	define( 'RWMB_FIELDS_DIR', trailingslashit( RWMB_INC_DIR . 'fields' ) );
 
-	// Plugin textdomain
-	define( 'RWMB_TEXTDOMAIN', 'rwmb' );
-
 	// Include field classes
 	foreach ( glob( RWMB_FIELDS_DIR . '*.php' ) as $file )
 	{
@@ -47,9 +45,9 @@ if ( ! class_exists( 'RW_Meta_Box' ) )
 	 * A class to rapid develop meta boxes for custom & built in content types
 	 * Piggybacks on WordPress
 	 *
-	 * @author Rilwis a.k.a.
-	 * @author Co-Authors @see https://github.com/rilwis/meta-box/blob/master/readme.md
-	 * @license GNU GPL2
+	 * @author Rilwis
+	 * @author Co-Authors @see https://github.com/rilwis/meta-box
+	 * @license GNU GPL2+
 	 * @package RW Meta Box
 	 */
 	class RW_Meta_Box
@@ -138,7 +136,7 @@ if ( ! class_exists( 'RW_Meta_Box' ) )
 			$mofile = "{$dir}{$locale}.mo";
 
 			// In themes/plugins/mu-plugins directory
-			load_textdomain( RWMB_TEXTDOMAIN, $mofile );
+			load_textdomain( 'rwmb', $mofile );
 		}
 
 		/**
@@ -200,6 +198,8 @@ if ( ! class_exists( 'RW_Meta_Box' ) )
 				$type = $field['type'];
 				$id = $field['id'];
 				$meta = self::apply_field_class_filters( $field, 'meta', '', $post->ID, $saved );
+				$meta = apply_filters( "rwmb_{$type}_meta", $meta );
+				$meta = apply_filters( "rwmb_{$id}_meta", $meta );
 
 				$begin = self::apply_field_class_filters( $field, 'begin_html', '', $meta );
 
@@ -331,7 +331,7 @@ HTML;
 
 			$button = '';
 			if ( self::is_cloneable( $field ) )
-				$button = '<a href="#" class="rwmb-button button-primary add-clone">' . __( '+', RWMB_TEXTDOMAIN ) . '</a>';
+				$button = '<a href="#" class="rwmb-button button-primary add-clone">' . __( '+', 'rwmb' ) . '</a>';
 
 			$desc = ! empty( $field[ 'desc' ] ) ? "<p id='{$id}_description' class='description'>{$field['desc']}</p>" : '';
 
@@ -355,7 +355,7 @@ HTML;
 		{
 			$id = $field['id'];
 
-			$button = '<a href="#" class="rwmb-button button-secondary remove-clone">' . __( '&#8211;', RWMB_TEXTDOMAIN ) . '</a>';
+			$button = '<a href="#" class="rwmb-button button-secondary remove-clone">' . __( '&#8211;', 'rwmb' ) . '</a>';
 
 			return "{$html}{$button}";
 		}
@@ -688,7 +688,7 @@ function rwmb_debug_print()
 	if ( ! $rwmb_debug || ( is_user_logged_in() && is_user_admin() ) )
 		return;
 
-	$html  = '<h3>' . __( 'RW_Meta_Box Debug:', RWMB_TEXTDOMAIN ) . '</h3><pre>';
+	$html  = '<h3>' . __( 'RW_Meta_Box Debug:', 'rwmb' ) . '</h3><pre>';
 	foreach ( $rwmb_debug as $debug )
 	{
 		$html .= "{$debug}<hr />";
