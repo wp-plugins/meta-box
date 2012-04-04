@@ -38,6 +38,12 @@ To change meta box definition, please see comments in `demo.php`.
 
 == Changelog ==
 
+= 4.1.3 =
+* Support max_file_uploads for plupload_image
+* Better enqueue styles & scripts
+* Store images in correct order after re-order
+* Fix cloning color, date, time, datetime fields
+
 = 4.1.2 =
 * Improve taxonomy field
 * Add filter to wp_editor
