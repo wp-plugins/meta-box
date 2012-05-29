@@ -27,19 +27,19 @@ $meta_boxes = array();
 
 // 1st meta box
 $meta_boxes[] = array(
-	// Meta box id, UNIQUE per meta box
+	// Meta box id, UNIQUE per meta box. Optional since 4.1.5
 	'id' => 'personal',
 
-	// Meta box title - Will appear at the drag and drop handle bar
+	// Meta box title - Will appear at the drag and drop handle bar. Required.
 	'title' => 'Personal Information',
 
-	// Post types, accept custom post types as well - DEFAULT is array('post'); (optional)
+	// Post types, accept custom post types as well - DEFAULT is array('post'). Optional.
 	'pages' => array( 'post', 'slider' ),
 
-	// Where the meta box appear: normal (default), advanced, side; optional
+	// Where the meta box appear: normal (default), advanced, side. Optional.
 	'context' => 'normal',
 
-	// Order of meta box: high (default), low; optional
+	// Order of meta box: high (default), low. Optional.
 	'priority' => 'high',
 
 	// List of meta fields
@@ -167,6 +167,13 @@ $meta_boxes[] = array(
 			'id'	=> "{$prefix}screenshot2",
 			'type'	=> 'plupload_image',
 			'max_file_uploads' => 4,
+		),
+		// THICKBOX IMAGE UPLOAD (WP 3.3+)
+		array(
+			'name'	=> 'Screenshots (thickbox upload)',
+			'desc'	=> 'Screenshots of problems, warnings, etc.',
+			'id'	=> "{$prefix}screenshot3",
+			'type'	=> 'thickbox_image',
 		)
 	)
 );
@@ -211,6 +218,21 @@ $meta_boxes[] = array(
 			'type'		=> 'datetime',
 			// Time format, default hh:mm. Optional. @link See: http://goo.gl/hXHWz
 			'format'	=> 'hh:mm:ss'
+		),
+		// TAXONOMY
+		array(
+			'name'    => 'Categories',
+			'id'      => "{$prefix}cats",
+			'type'    => 'taxonomy',
+			'options' => array(
+				// Taxonomy name
+				'taxonomy'	=> 'category',
+				// How to show taxonomy: 'checkbox_list' (default) or 'checkbox_tree', 'select_tree' or 'select'. Optional
+				'type'		=> 'checkbox_tree',
+				// Additional arguments for get_terms() function. Optional
+				'args'		=> array()
+			),
+			'desc'		=> 'Choose One Category'
 		)
 	)
 );

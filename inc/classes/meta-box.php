@@ -1,14 +1,4 @@
 <?php
-/*
-Plugin Name: Meta Box
-Plugin URI: http://www.deluxeblogtips.com/meta-box
-Description: Create meta box for editing pages in WordPress. Compatible with custom post types since WP 3.0
-Version: 4.1.2
-Author: Rilwis
-Author URI: http://www.deluxeblogtips.com
-License: GPL2+
-*/
-
 // Prevent loading this file directly - Busted!
 if ( ! class_exists( 'WP' ) )
 {
@@ -74,7 +64,7 @@ if ( ! class_exists( 'RW_Meta_Box' ) )
 			self::load_textdomain();
 
 			// Enqueue common styles and scripts
-			add_action( 'admin_enqueue_scripts', array( &$this, 'admin_enqueue_scripts' ) );
+			add_action( 'admin_enqueue_scripts', array( $this, 'admin_enqueue_scripts' ) );
 
 			foreach ( $this->types as $type )
 			{
@@ -87,10 +77,10 @@ if ( ! class_exists( 'RW_Meta_Box' ) )
 
 			// Add meta box
 			foreach ( $this->meta_box['pages'] as $page )
-				add_action( "add_meta_boxes_{$page}", array( &$this, 'add_meta_boxes' ) );
+				add_action( "add_meta_boxes_{$page}", array( $this, 'add_meta_boxes' ) );
 
 			// Save post meta
-			add_action( 'save_post', array( &$this, 'save_post' ) );
+			add_action( 'save_post', array( $this, 'save_post' ) );
 		}
 
 		/**
@@ -158,7 +148,7 @@ if ( ! class_exists( 'RW_Meta_Box' ) )
 				add_meta_box(
 					$this->meta_box['id'],
 					$this->meta_box['title'],
-					array( &$this, 'show' ),
+					array( $this, 'show' ),
 					$page,
 					$this->meta_box['context'],
 					$this->meta_box['priority']
@@ -213,7 +203,7 @@ if ( ! class_exists( 'RW_Meta_Box' ) )
 					$meta = (array) $meta;
 					foreach ( $meta as $meta_data )
 					{
-						add_filter( "rwmb_{$id}_html", array( &$this, 'add_delete_clone_button' ), 10, 3 );
+						add_filter( "rwmb_{$id}_html", array( $this, 'add_delete_clone_button' ), 10, 3 );
 
 						// Wrap field HTML in a div with class="rwmb-clone" if needed
 						$input_html = '<div class="rwmb-clone">';
@@ -476,6 +466,7 @@ HTML;
 		{
 			// Set default values for meta box
 			$meta_box = wp_parse_args( $meta_box, array(
+				'id'       => sanitize_title( $meta_box['title'] ),
 				'context'  => 'normal',
 				'priority' => 'high',
 				'pages'    => array( 'post' )
@@ -484,17 +475,12 @@ HTML;
 			// Set default values for fields
 			foreach ( $meta_box['fields'] as &$field )
 			{
-				$clone 	  = isset( $field['clone'] ) ? $field['clone'] : false;
-				$multiple = in_array( $field['type'], array( 'checkbox_list', 'file', 'image', 'plupload_image' ) ) ;
-				$std      = $multiple ? array() : '';
-				$format   = 'date' === $field['type'] ? 'yy-mm-dd' : ( 'time' === $field['type'] ? 'hh:mm' : '' );
-
 				$field = wp_parse_args( $field, array(
-					'multiple' => $multiple,
-					'clone' => $clone,
-					'std'      => $std,
+					'multiple' => false,
+					'clone'    => false,
+					'std'      => '',
 					'desc'     => '',
-					'format'   => $format
+					'format'   => '',
 				) );
 
 				$field['field_name'] = $field['id'] . ( $field['multiple'] || $field['clone'] ? '[]' : '' );
