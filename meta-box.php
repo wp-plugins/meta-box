@@ -3,7 +3,7 @@
 Plugin Name: Meta Box
 Plugin URI: http://www.deluxeblogtips.com/meta-box
 Description: Create meta box for editing pages in WordPress. Compatible with custom post types since WP 3.0
-Version: 4.1.7
+Version: 4.1.8
 Author: Rilwis
 Author URI: http://www.deluxeblogtips.com
 License: GPL2+
@@ -46,44 +46,3 @@ if ( defined( 'WP_ADMIN' ) && WP_ADMIN )
 	// Include plugin main file
 	require_once RWMB_CLASSES_DIR . 'meta-box.php';
 }
-
-
-/**
- * Adds [whatever] to the global debug array
- *
- * @param mixed  $input
- * @param string $print_or_export
- *
- * @return array
- */
-function rwmb_debug( $input, $print_or_export = 'print' )
-{
-	global $rwmb_debug;
-
-	$html = 'print' === $print_or_export ? print_r( $input, true ) : var_export( $input, true );
-
-	return $rwmb_debug[] = $html;
-}
-
-/**
- * Prints or exports the content of the global debug array at the 'shutdown' hook
- *
- * @return void
- */
-function rwmb_debug_print()
-{
-	global $rwmb_debug;
-	if ( ! $rwmb_debug || ( is_user_logged_in() && is_user_admin() ) )
-		return;
-
-	$html  = '<h3>' . __( 'RW_Meta_Box Debug:', 'rwmb' ) . '</h3><pre>';
-	foreach ( $rwmb_debug as $debug )
-	{
-		$html .= "{$debug}<hr />";
-	}
-	$html .= '</pre>';
-
-	die( $html );
-}
-
-add_action( 'shutdown', 'rwmb_debug_print', 999 );
