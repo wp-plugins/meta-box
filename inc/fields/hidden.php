@@ -1,11 +1,6 @@
 <?php
-// Prevent loading this file directly - Busted!
-if( ! class_exists('WP') ) 
-{
-	header( 'Status: 403 Forbidden' );
-	header( 'HTTP/1.1 403 Forbidden' );
-	exit;
-}
+// Prevent loading this file directly
+defined( 'ABSPATH' ) || exit;
 
 if ( ! class_exists( 'RWMB_Hidden_Field' ) )
 {
@@ -37,7 +32,7 @@ if ( ! class_exists( 'RWMB_Hidden_Field' ) )
 		static function html( $html, $meta, $field )
 		{
 			$val   = " value='{$field['std']}'";
-			$name  = " name='{$field['id']}'";
+			$name  = " name='{$field['field_name']}'";
 			$id    = " id='{$field['id']}'";
 			$html .= "<input type='hidden' class='rwmb-hidden'{$name}{$id}{$val} />";
 

@@ -1,14 +1,9 @@
 <?php
-// Prevent loading this file directly - Busted!
-if ( ! class_exists( 'WP' ) )
-{
-	header( 'Status: 403 Forbidden' );
-	header( 'HTTP/1.1 403 Forbidden' );
-	exit;
-}
+// Prevent loading this file directly
+defined( 'ABSPATH' ) || exit;
 
 // Meta Box Class
-if ( ! class_exists( 'RW_Meta_Box' ) )
+if ( !class_exists( 'RW_Meta_Box' ) )
 {
 	/**
 	 * A class to rapid develop meta boxes for custom & built in content types
@@ -37,6 +32,11 @@ if ( ! class_exists( 'RW_Meta_Box' ) )
 		var $types;
 
 		/**
+		 * Validation information
+		 */
+		var $validation;
+
+		/**
 		 * Create meta box based on given data
 		 *
 		 * @see demo/demo.php file for details
@@ -48,20 +48,16 @@ if ( ! class_exists( 'RW_Meta_Box' ) )
 		function __construct( $meta_box )
 		{
 			// Run script only in admin area
-			if ( ! is_admin() )
+			if ( !is_admin() )
 				return;
 
 			// Assign meta box values to local variables and add it's missed values
-			$this->meta_box = self::normalize( $meta_box );
-			$this->fields   = &$this->meta_box['fields'];
+			$this->meta_box 	= self::normalize( $meta_box );
+			$this->fields   	= &$this->meta_box['fields'];
+			$this->validation   = &$this->meta_box['validation'];
 
 			// List of meta box field types
 			$this->types = array_unique( wp_list_pluck( $this->fields, 'type' ) );
-
-			// Load translation file
-			// Call directly because we define meta boxes in 'admin_init' hook (@see demo/demo.php)
-			// So the function won't run if we use 'add_action' to load textdomain here
-			self::load_textdomain();
 
 			// Enqueue common styles and scripts
 			add_action( 'admin_enqueue_scripts', array( $this, 'admin_enqueue_scripts' ) );
@@ -77,27 +73,12 @@ if ( ! class_exists( 'RW_Meta_Box' ) )
 
 			// Add meta box
 			foreach ( $this->meta_box['pages'] as $page )
+			{
 				add_action( "add_meta_boxes_{$page}", array( $this, 'add_meta_boxes' ) );
+			}
 
 			// Save post meta
 			add_action( 'save_post', array( $this, 'save_post' ) );
-		}
-
-		/**
-		 * Load plugin translation
-		 *
-		 * @link http://wordpress.stackexchange.com/a/33314 Translation Tutorial by the author
-		 * @return void
-		 */
-		static function load_textdomain()
-		{
-			// l18n translation files
-			$locale = get_locale();
-			$dir    = trailingslashit( RWMB_DIR . 'lang' );
-			$mofile = "{$dir}{$locale}.mo";
-
-			// In themes/plugins/mu-plugins directory
-			load_textdomain( 'rwmb', $mofile );
 		}
 
 		/**
@@ -110,7 +91,7 @@ if ( ! class_exists( 'RW_Meta_Box' ) )
 			$screen = get_current_screen();
 
 			// Enqueue scripts and styles for registered pages (post types) only
-			if ( 'post' != $screen->base || ! in_array( $screen->post_type, $this->meta_box['pages'] ) )
+			if ( 'post' != $screen->base || !in_array( $screen->post_type, $this->meta_box['pages'] ) )
 				return;
 
 			wp_enqueue_style( 'rwmb', RWMB_CSS_URL . 'style.css', RWMB_VER );
@@ -128,13 +109,19 @@ if ( ! class_exists( 'RW_Meta_Box' ) )
 					call_user_func( array( $class, 'admin_enqueue_scripts' ) );
 			}
 
-			if ( $has_clone )
+			if ( $has_clone ) {
 				wp_enqueue_script( 'rwmb-clone', RWMB_JS_URL . 'clone.js', array( 'jquery' ), RWMB_VER, true );
+			}
+
+			if ( $this->validation ) {
+				wp_enqueue_script( 'jquery-validate', RWMB_JS_URL . 'jquery.validate.min.js', array( 'jquery' ), RWMB_VER, true );
+				wp_enqueue_script( 'rwmb-validate', RWMB_JS_URL . 'validate.js', array( 'jquery-validate' ), RWMB_VER, true );
+			}
 		}
 
 		/**************************************************
-			SHOW META BOX
-		**************************************************/
+		 SHOW META BOX
+		 **************************************************/
 
 		/**
 		 * Add meta box for multiple post types
@@ -254,13 +241,43 @@ if ( ! class_exists( 'RW_Meta_Box' ) )
 
 				// Display label and input in DIV and allow user-defined classes to be appended
 				$class = 'rwmb-field';
+				if ( isset( $field['required'] ) && $field['required'] )
+					$class .= ' required';
 				if ( isset( $field['class'] ) )
-					$class = $this->add_cssclass( $field[ 'class' ], $class );
+					$class = $this->add_cssclass( $field['class'], $class );
 
-				// If the 'hidden' argument is set and TRUE, the div will be hidden
-				if ( isset( $field['hidden'] ) && $field['hidden'] )
+				// Hide the div if field has 'hidden' type
+				if ( 'hidden' === $field['type'] )
 					$class = $this->add_cssclass( 'hidden', $class );
 				echo "<div class='{$class}'>{$html}</div>";
+			}
+
+			// Include validation settings for this meta-box
+			if ( isset( $this->validation ) && $this->validation )
+			{
+				echo '
+					<script type="text/javascript">
+						if ( typeof rwmb == "undefined" )
+						{
+							var rwmb = {
+								validationOptions : jQuery.parseJSON( "' . json_encode( $this->validation ) . '" ),
+								summaryMessage : "' . __( 'Please correct the errors highlighted below and try again.', 'rwmb' ) . '"
+							};
+						}
+						else
+						{
+							var tempOptions = jQuery.parseJSON( "' . json_encode( $this->validation ) . '" );
+							jQuery.each( tempOptions.rules, function( k, v )
+							{
+								rwmb.validationOptions.rules[k] = v;
+							});
+							jQuery.each( tempOptions.messages, function( k, v )
+							{
+								rwmb.validationOptions.messages[k] = v;
+							});
+						};
+					</script>
+				';
 			}
 
 			// Allow users to add custom code after meta box content
@@ -282,7 +299,8 @@ if ( ! class_exists( 'RW_Meta_Box' ) )
 		static function begin_html( $html, $meta, $field )
 		{
 			$class = 'rwmb-label';
-			if ( ! empty( $field['class'] ) )
+
+			if ( !empty( $field['class'] ) )
 				$class = self::add_cssclass( $field['class'], $class );
 
 			if ( empty( $field['name'] ) )
@@ -302,20 +320,20 @@ HTML;
 		 * Show end HTML markup for fields
 		 *
 		 * @param string $html
-		 * @param mixed $meta
-		 * @param array $field
+		 * @param mixed  $meta
+		 * @param array  $field
 		 *
 		 * @return string
 		 */
 		static function end_html( $html, $meta, $field )
 		{
-			$id   = $field['id'];
+			$id = $field['id'];
 
 			$button = '';
 			if ( self::is_cloneable( $field ) )
 				$button = '<a href="#" class="rwmb-button button-primary add-clone">' . __( '+', 'rwmb' ) . '</a>';
 
-			$desc = ! empty( $field[ 'desc' ] ) ? "<p id='{$id}_description' class='description'>{$field['desc']}</p>" : '';
+			$desc = !empty( $field['desc'] ) ? "<p id='{$id}_description' class='description'>{$field['desc']}</p>" : '';
 
 			// Closes the container
 			$html = "{$button}{$desc}</div>";
@@ -346,7 +364,7 @@ HTML;
 		 * Standard meta retrieval
 		 *
 		 * @param mixed $meta
-		 * @param int	$post_id
+		 * @param int   $post_id
 		 * @param array $field
 		 * @param bool  $saved
 		 *
@@ -354,21 +372,21 @@ HTML;
 		 */
 		static function meta( $meta, $post_id, $saved, $field )
 		{
-			$meta = get_post_meta( $post_id, $field['id'], ! $field['multiple'] );
+			$meta = get_post_meta( $post_id, $field['id'], !$field['multiple'] );
 
 			// Use $field['std'] only when the meta box hasn't been saved (i.e. the first time we run)
-			$meta = ( ! $saved && '' === $meta || array() === $meta ) ? $field['std'] : $meta;
+			$meta = ( !$saved && '' === $meta || array() === $meta ) ? $field['std'] : $meta;
 
 			// Escape attributes for non-wysiwyg fields
-			if ( 'wysiwyg' !==  $field['type'] )
+			if ( 'wysiwyg' !== $field['type'] )
 				$meta = is_array( $meta ) ? array_map( 'esc_attr', $meta ) : esc_attr( $meta );
 
 			return $meta;
 		}
 
 		/**************************************************
-			SAVE META BOX
-		**************************************************/
+		 SAVE META BOX
+		 **************************************************/
 
 		/**
 		 * Save data from meta box
@@ -389,10 +407,10 @@ HTML;
 			// - user has proper capability
 			if (
 				( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE )
-				|| ( ! isset( $_POST['post_ID'] ) || $post_id != $_POST['post_ID'] )
-				|| ( ! in_array( $post_type, $this->meta_box['pages'] ) )
-				|| ( ! current_user_can( $post_type_object->cap->edit_post, $post_id ) )
-				)
+				|| ( !isset( $_POST['post_ID'] ) || $post_id != $_POST['post_ID'] )
+				|| ( !in_array( $post_type, $this->meta_box['pages'] ) )
+				|| ( !current_user_can( $post_type_object->cap->edit_post, $post_id ) )
+			)
 			{
 				return $post_id;
 			}
@@ -403,8 +421,8 @@ HTML;
 			foreach ( $this->fields as $field )
 			{
 				$name = $field['id'];
-				$old  = get_post_meta( $post_id, $name, ! $field['multiple'] );
-				$new  = isset( $_POST[ $name ] ) ? $_POST[ $name ] : ( $field['multiple'] ? array() : '' );
+				$old = get_post_meta( $post_id, $name, !$field['multiple'] );
+				$new = isset( $_POST[$name] ) ? $_POST[$name] : ( $field['multiple'] ? array() : '' );
 
 				// Allow field class change the value
 				$new = self::apply_field_class_filters( $field, 'value', $new, $old, $post_id );
@@ -425,7 +443,7 @@ HTML;
 		 *
 		 * @param mixed $new
 		 * @param mixed $old
-		 * @param int $post_id
+		 * @param int   $post_id
 		 * @param array $field
 		 *
 		 * @return void
@@ -452,8 +470,8 @@ HTML;
 		}
 
 		/**************************************************
-			HELPER FUNCTIONS
-		**************************************************/
+		 HELPER FUNCTIONS
+		 **************************************************/
 
 		/**
 		 * Normalize parameters for meta box
@@ -485,8 +503,11 @@ HTML;
 
 				// Allow field class add/change default field values
 				$field = self::apply_field_class_filters( $field, 'normalize_field', $field );
-				
-				$field['field_name'] = $field['id'] . ( $field['multiple'] || $field['clone'] ? '[]' : '' );
+
+				// Allow field class to manually change field_name
+				// @see taxonomy.php for example
+				if ( !isset( $field['field_name'] ) )
+					$field['field_name'] = $field['id'] . ( $field['multiple'] || $field['clone'] ? '[]' : '' );
 			}
 
 			return $meta_box;
@@ -501,8 +522,8 @@ HTML;
 		 */
 		static function get_class_name( $type )
 		{
-			$type	= ucwords( $type );
-			$class	= "RWMB_{$type}_Field";
+			$type = ucwords( $type );
+			$class = "RWMB_{$type}_Field";
 
 			if ( class_exists( $class ) )
 				return $class;
@@ -521,8 +542,8 @@ HTML;
 		 */
 		static function apply_field_class_filters( $field, $method_name, $value )
 		{
-			$args	= array_slice( func_get_args(), 2 );
-			$args[]	= $field;
+			$args = array_slice( func_get_args(), 2 );
+			$args[] = $field;
 
 			// Call:     field class method
 			// Fallback: RW_Meta_Box method
@@ -549,7 +570,7 @@ HTML;
 		 */
 		static function do_field_class_actions( $field, $method_name )
 		{
-			$args   = array_slice( func_get_args(), 2 );
+			$args = array_slice( func_get_args(), 2 );
 			$args[] = $field;
 
 			// Call:     field class method
@@ -595,7 +616,7 @@ HTML;
 			$saved = false;
 			foreach ( $fields as $field )
 			{
-				if ( get_post_meta( $post_id, $field['id'], ! $field['multiple'] ) )
+				if ( get_post_meta( $post_id, $field['id'], !$field['multiple'] ) )
 				{
 					$saved = true;
 					break;
@@ -621,7 +642,6 @@ HTML;
 
 			return $class;
 		}
-
 
 		/**
 		 * Helper function to check for multi/clone field IDs
