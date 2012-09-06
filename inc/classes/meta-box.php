@@ -3,7 +3,7 @@
 defined( 'ABSPATH' ) || exit;
 
 // Meta Box Class
-if ( !class_exists( 'RW_Meta_Box' ) )
+if ( ! class_exists( 'RW_Meta_Box' ) )
 {
 	/**
 	 * A class to rapid develop meta boxes for custom & built in content types
@@ -48,13 +48,13 @@ if ( !class_exists( 'RW_Meta_Box' ) )
 		function __construct( $meta_box )
 		{
 			// Run script only in admin area
-			if ( !is_admin() )
+			if ( ! is_admin() )
 				return;
 
 			// Assign meta box values to local variables and add it's missed values
-			$this->meta_box 	= self::normalize( $meta_box );
-			$this->fields   	= &$this->meta_box['fields'];
-			$this->validation   = &$this->meta_box['validation'];
+			$this->meta_box   = self::normalize( $meta_box );
+			$this->fields     = &$this->meta_box['fields'];
+			$this->validation = &$this->meta_box['validation'];
 
 			// List of meta box field types
 			$this->types = array_unique( wp_list_pluck( $this->fields, 'type' ) );
@@ -91,7 +91,7 @@ if ( !class_exists( 'RW_Meta_Box' ) )
 			$screen = get_current_screen();
 
 			// Enqueue scripts and styles for registered pages (post types) only
-			if ( 'post' != $screen->base || !in_array( $screen->post_type, $this->meta_box['pages'] ) )
+			if ( 'post' != $screen->base || ! in_array( $screen->post_type, $this->meta_box['pages'] ) )
 				return;
 
 			wp_enqueue_style( 'rwmb', RWMB_CSS_URL . 'style.css', RWMB_VER );
@@ -132,6 +132,15 @@ if ( !class_exists( 'RW_Meta_Box' ) )
 		{
 			foreach ( $this->meta_box['pages'] as $page )
 			{
+				// Allow users to show/hide meta boxes
+				// 1st action applies to all meta boxes
+				// 2nd action applies to only current meta box
+				$show = true;
+				$show = apply_filters( 'rwmb_show', $show, $this->meta_box );
+				$show = apply_filters( "rwmb_show_{$this->meta_box['id']}", $show, $this->meta_box );
+				if ( !$show )
+					continue;
+
 				add_meta_box(
 					$this->meta_box['id'],
 					$this->meta_box['title'],
@@ -164,8 +173,9 @@ if ( !class_exists( 'RW_Meta_Box' ) )
 
 			foreach ( $this->fields as $field )
 			{
+				$group = "";	// Empty the clone-group field
 				$type = $field['type'];
-				$id = $field['id'];
+				$id   = $field['id'];
 				$meta = self::apply_field_class_filters( $field, 'meta', '', $post->ID, $saved );
 				$meta = apply_filters( "rwmb_{$type}_meta", $meta );
 				$meta = apply_filters( "rwmb_{$id}_meta", $meta );
@@ -176,7 +186,7 @@ if ( !class_exists( 'RW_Meta_Box' ) )
 				// 1st filter applies to all fields
 				// 2nd filter applies to all fields with the same type
 				// 3rd filter applies to current field only
-				$begin = apply_filters( "rwmb_begin_html", $begin, $field, $meta );
+				$begin = apply_filters( 'rwmb_begin_html', $begin, $field, $meta );
 				$begin = apply_filters( "rwmb_{$type}_begin_html", $begin, $field, $meta );
 				$begin = apply_filters( "rwmb_{$id}_begin_html", $begin, $field, $meta );
 
@@ -185,18 +195,37 @@ if ( !class_exists( 'RW_Meta_Box' ) )
 				// Cloneable fields
 				if ( self::is_cloneable( $field ) )
 				{
-					$field_html = '';
+					if ( isset( $field['clone-group'] ) )
+						$group = " clone-group='{$field['clone-group']}'";
+
+					if ( ! is_array( $field['field_name'] ) )
+						$field['field_name'] = (array) $field['field_name'];
 
 					$meta = (array) $meta;
+
+					foreach ( array_keys( $meta ) as $i )
+						$field['field_name'][$i] = $field['id'] . "[{$i}]";
+
+					$field_html = '';
+
+					$index = 0;
 					foreach ( $meta as $meta_data )
 					{
+						if ( is_array( $field['field_name'] ) )
+						{
+							$subfield = $field;
+							$subfield['field_name'] = $field['field_name'][$index];
+						}
+						else
+							$subfield = $field;
+
 						add_filter( "rwmb_{$id}_html", array( $this, 'add_delete_clone_button' ), 10, 3 );
 
 						// Wrap field HTML in a div with class="rwmb-clone" if needed
 						$input_html = '<div class="rwmb-clone">';
 
 						// Call separated methods for displaying each type of field
-						$input_html .= self::apply_field_class_filters( $field, 'html', '', $meta_data );
+						$input_html .= self::apply_field_class_filters( $subfield, 'html', '', $meta_data );
 
 						// Apply filter to field HTML
 						// 1st filter applies to all fields with the same type
@@ -207,6 +236,7 @@ if ( !class_exists( 'RW_Meta_Box' ) )
 						$input_html .= '</div>';
 
 						$field_html .= $input_html;
+						$index++;
 					}
 				}
 				// Non-cloneable fields
@@ -228,7 +258,7 @@ if ( !class_exists( 'RW_Meta_Box' ) )
 				// 1st filter applies to all fields
 				// 2nd filter applies to all fields with the same type
 				// 3rd filter applies to current field only
-				$end = apply_filters( "rwmb_end_html", $end, $field, $meta );
+				$end = apply_filters( 'rwmb_end_html', $end, $field, $meta );
 				$end = apply_filters( "rwmb_{$type}_end_html", $end, $field, $meta );
 				$end = apply_filters( "rwmb_{$id}_end_html", $end, $field, $meta );
 
@@ -249,7 +279,7 @@ if ( !class_exists( 'RW_Meta_Box' ) )
 				// Hide the div if field has 'hidden' type
 				if ( 'hidden' === $field['type'] )
 					$class = $this->add_cssclass( 'hidden', $class );
-				echo "<div class='{$class}'>{$html}</div>";
+				echo "<div class='{$class}'{$group}>{$html}</div>";
 			}
 
 			// Include validation settings for this meta-box
@@ -260,13 +290,13 @@ if ( !class_exists( 'RW_Meta_Box' ) )
 						if ( typeof rwmb == "undefined" )
 						{
 							var rwmb = {
-								validationOptions : jQuery.parseJSON( "' . json_encode( $this->validation ) . '" ),
+								validationOptions : jQuery.parseJSON( \'' . json_encode( $this->validation ) . '\' ),
 								summaryMessage : "' . __( 'Please correct the errors highlighted below and try again.', 'rwmb' ) . '"
 							};
 						}
 						else
 						{
-							var tempOptions = jQuery.parseJSON( "' . json_encode( $this->validation ) . '" );
+							var tempOptions = jQuery.parseJSON( \'' . json_encode( $this->validation ) . '\' );
 							jQuery.each( tempOptions.rules, function( k, v )
 							{
 								rwmb.validationOptions.rules[k] = v;
@@ -300,7 +330,7 @@ if ( !class_exists( 'RW_Meta_Box' ) )
 		{
 			$class = 'rwmb-label';
 
-			if ( !empty( $field['class'] ) )
+			if ( ! empty( $field['class'] ) )
 				$class = self::add_cssclass( $field['class'], $class );
 
 			if ( empty( $field['name'] ) )
@@ -333,7 +363,7 @@ HTML;
 			if ( self::is_cloneable( $field ) )
 				$button = '<a href="#" class="rwmb-button button-primary add-clone">' . __( '+', 'rwmb' ) . '</a>';
 
-			$desc = !empty( $field['desc'] ) ? "<p id='{$id}_description' class='description'>{$field['desc']}</p>" : '';
+			$desc = ! empty( $field['desc'] ) ? "<p id='{$id}_description' class='description'>{$field['desc']}</p>" : '';
 
 			// Closes the container
 			$html = "{$button}{$desc}</div>";
@@ -407,9 +437,9 @@ HTML;
 			// - user has proper capability
 			if (
 				( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE )
-				|| ( !isset( $_POST['post_ID'] ) || $post_id != $_POST['post_ID'] )
-				|| ( !in_array( $post_type, $this->meta_box['pages'] ) )
-				|| ( !current_user_can( $post_type_object->cap->edit_post, $post_id ) )
+				|| ( ! isset( $_POST['post_ID'] ) || $post_id != $_POST['post_ID'] )
+				|| ( ! in_array( $post_type, $this->meta_box['pages'] ) )
+				|| ( ! current_user_can( $post_type_object->cap->edit_post, $post_id ) )
 			)
 			{
 				return $post_id;
@@ -421,8 +451,8 @@ HTML;
 			foreach ( $this->fields as $field )
 			{
 				$name = $field['id'];
-				$old = get_post_meta( $post_id, $name, !$field['multiple'] );
-				$new = isset( $_POST[$name] ) ? $_POST[$name] : ( $field['multiple'] ? array() : '' );
+				$old  = get_post_meta( $post_id, $name, !$field['multiple'] );
+				$new  = isset( $_POST[$name] ) ? $_POST[$name] : ( $field['multiple'] ? array() : '' );
 
 				// Allow field class change the value
 				$new = self::apply_field_class_filters( $field, 'value', $new, $old, $post_id );
@@ -483,31 +513,35 @@ HTML;
 		static function normalize( $meta_box )
 		{
 			// Set default values for meta box
-			$meta_box = wp_parse_args( $meta_box, array(
-				'id'       => sanitize_title( $meta_box['title'] ),
-				'context'  => 'normal',
-				'priority' => 'high',
-				'pages'    => array( 'post' )
-			) );
+			$meta_box = wp_parse_args(
+				$meta_box, array(
+					'id'       => sanitize_title( $meta_box['title'] ),
+					'context'  => 'normal',
+					'priority' => 'high',
+					'pages'    => array( 'post' )
+				)
+			);
 
 			// Set default values for fields
 			foreach ( $meta_box['fields'] as &$field )
 			{
-				$field = wp_parse_args( $field, array(
-					'multiple' => false,
-					'clone'    => false,
-					'std'      => '',
-					'desc'     => '',
-					'format'   => '',
-				) );
+				$field = wp_parse_args(
+					$field, array(
+						'multiple' => false,
+						'clone'    => false,
+						'std'      => '',
+						'desc'     => '',
+						'format'   => '',
+					)
+				);
 
 				// Allow field class add/change default field values
 				$field = self::apply_field_class_filters( $field, 'normalize_field', $field );
 
 				// Allow field class to manually change field_name
 				// @see taxonomy.php for example
-				if ( !isset( $field['field_name'] ) )
-					$field['field_name'] = $field['id'] . ( $field['multiple'] || $field['clone'] ? '[]' : '' );
+				if ( ! isset( $field['field_name'] ) )
+					$field['field_name'] = $field['id'] . ( $field['multiple'] || $field['clone'] ? '[0]' : '' );
 			}
 
 			return $meta_box;
@@ -522,7 +556,7 @@ HTML;
 		 */
 		static function get_class_name( $type )
 		{
-			$type = ucwords( $type );
+			$type  = ucwords( $type );
 			$class = "RWMB_{$type}_Field";
 
 			if ( class_exists( $class ) )
@@ -542,7 +576,7 @@ HTML;
 		 */
 		static function apply_field_class_filters( $field, $method_name, $value )
 		{
-			$args = array_slice( func_get_args(), 2 );
+			$args   = array_slice( func_get_args(), 2 );
 			$args[] = $field;
 
 			// Call:     field class method
@@ -570,7 +604,7 @@ HTML;
 		 */
 		static function do_field_class_actions( $field, $method_name )
 		{
-			$args = array_slice( func_get_args(), 2 );
+			$args   = array_slice( func_get_args(), 2 );
 			$args[] = $field;
 
 			// Call:     field class method

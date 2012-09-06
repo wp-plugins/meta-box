@@ -32,7 +32,7 @@ function rwmb_meta( $key, $args = array(), $post_id = null )
 	// Get uploaded files info
 	if ( 'file' == $args['type'] )
 	{
-		if ( is_array( $meta ) && !empty( $meta ) )
+		if ( is_array( $meta ) && ! empty( $meta ) )
 		{
 			$files = array();
 			foreach ( $meta as $id )
@@ -46,7 +46,7 @@ function rwmb_meta( $key, $args = array(), $post_id = null )
 	// Get uploaded images info
 	elseif ( in_array( $args['type'], array( 'image', 'plupload_image', 'thickbox_image' ) ) )
 	{
-		if ( is_array( $meta ) && !empty( $meta ) )
+		if ( is_array( $meta ) && ! empty( $meta ) )
 		{
 			global $wpdb;
 			$meta = implode( ',' , $meta );
@@ -66,6 +66,12 @@ function rwmb_meta( $key, $args = array(), $post_id = null )
 			}
 			$meta = $images;
 		}
+	}
+
+	// Get post terms
+	elseif ( 'taxonomy' == $args['type'] )
+	{
+		$meta = emtpy( $args['taxonomy'] ) ? array() : wp_get_post_terms( $post_id, $args['taxonomy'] );
 	}
 
 	return $meta;
