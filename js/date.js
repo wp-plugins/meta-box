@@ -9,12 +9,9 @@ function rwmb_update_date_picker()
 	$( '.rwmb-date' ).each( function()
 	{
 		var $this = $( this ),
-			format = $this.attr( 'rel' );
+			options = $this.data( 'options' );
 
-		$this.removeClass('hasDatepicker').attr('id', '').datepicker( {
-			showButtonPanel: true,
-			dateFormat:	     format
-		} );
+		$this.removeClass( 'hasDatepicker' ).attr( 'id', '' ).datepicker( options );
 	} );
 }
 

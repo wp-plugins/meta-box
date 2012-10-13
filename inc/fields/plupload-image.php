@@ -14,7 +14,7 @@ if ( ! class_exists( 'RWMB_Plupload_Image_Field' ) )
 		static function add_actions()
 		{
 			parent::add_actions();
-			add_action( 'wp_ajax_plupload_image_upload', array( __CLASS__, 'handle_upload' ) );
+			add_action( 'wp_ajax_rwmb_plupload_image_upload', array( __CLASS__, 'handle_upload' ) );
 		}
 
 		/**
@@ -33,12 +33,7 @@ if ( ! class_exists( 'RWMB_Plupload_Image_Field' ) )
 
 			// You can use WP's wp_handle_upload() function:
 			$file       = $_FILES['async-upload'];
-			$file_attr  = wp_handle_upload(
-				$file, array(
-					'test_form' => true,
-					'action'    => 'plupload_image_upload',
-				)
-			);
+			$file_attr  = wp_handle_upload( $file, array( 'test_form' => false ) );
 			$attachment = array(
 				'guid'           => $file_attr['url'],
 				'post_mime_type' => $file_attr['type'],
@@ -57,14 +52,7 @@ if ( ! class_exists( 'RWMB_Plupload_Image_Field' ) )
 				if ( isset( $_REQUEST['field_id'] ) )
 					add_post_meta( $post_id, $_REQUEST['field_id'], $id, false );
 
-				$response = new WP_Ajax_Response();
-				$response->add(
-					array(
-						'what' => 'rwmb_image_response',
-						'data' => self::img_html( $id ),
-					)
-				);
-				$response->send();
+				RW_Meta_Box::ajax_response( self::img_html( $id, $_REQUEST['field_id'] ), 'success' );
 			}
 
 			exit;
@@ -79,7 +67,7 @@ if ( ! class_exists( 'RWMB_Plupload_Image_Field' ) )
 		{
 			// Enqueue same scripts and styles as for file field
 			parent::admin_enqueue_scripts();
-			wp_enqueue_style( 'rwmb-plupload-image', RWMB_CSS_URL . 'plupload-image.css', array(), RWMB_VER );
+			wp_enqueue_style( 'rwmb-plupload-image', RWMB_CSS_URL . 'plupload-image.css', array( 'wp-admin' ), RWMB_VER );
 			wp_enqueue_script( 'rwmb-plupload-image', RWMB_JS_URL . 'plupload-image.js', array( 'jquery-ui-sortable', 'wp-ajax-response', 'plupload-all' ), RWMB_VER, true );
 			wp_localize_script( 'rwmb-plupload-image', 'RWMB', array( 'url' => RWMB_URL ) );
 			wp_localize_script(
@@ -104,35 +92,6 @@ if ( ! class_exists( 'RWMB_Plupload_Image_Field' ) )
 		}
 
 		/**
-		 * Get image html
-		 *
-		 * @param int $img_id
-		 *
-		 * @return string
-		 */
-		static function img_html( $img_id )
-		{
-			$i18n_del_file = _x( 'Delete this file', 'image upload', 'rwmb' );
-			$i18n_delete   = _x( 'Delete', 'image upload', 'rwmb' );
-			$i18n_edit     = _x( 'Edit', 'image upload', 'rwmb' );
-
-			$src  = wp_get_attachment_image_src( $img_id, 'thumbnail' );
-			$src  = $src[0];
-			$link = get_edit_post_link( $img_id );
-
-			$html = <<<HTML
-<li id='item_{$img_id}'>
-	<img src='{$src}' />
-	<div class='rwmb-image-bar'>
-		<a title='{$i18n_edit}' class='rwmb-edit-file' href='{$link}' target='_blank'>{$i18n_edit}</a> |
-		<a title='{$i18n_del_file}' class='rwmb-delete-file' href='#' rel='{$img_id}'>{$i18n_delete}</a>
-	</div>
-</li>
-HTML;
-			return $html;
-		}
-
-		/**
 		 * Get field HTML
 		 *
 		 * @param string $html
@@ -145,9 +104,6 @@ HTML;
 		{
 			if ( ! is_array( $meta ) )
 				$meta = ( array ) $meta;
-
-			$i18n_msg   = _x( 'Uploaded files', 'image upload', 'rwmb' );
-			$i18n_title = _x( 'Upload files', 'image upload', 'rwmb' );
 
 			// Filter to change the drag & drop box background string
 			$i18n_drop   = apply_filters( 'rwmb_upload_drop_string', _x( 'Drop images here', 'image upload', 'rwmb' ) );
@@ -164,38 +120,54 @@ HTML;
 			$html .= "<div id='{$img_prefix}-container'>";
 
 			// Check for max_file_uploads
-			$class = 'rwmb-drag-drop hide-if-no-js';
+			$classes = array( 'rwmb-drag-drop', 'drag-drop', 'hide-if-no-js' );
 			if ( ! empty( $field['max_file_uploads'] ) )
 			{
 				$max_file_uploads = (int) $field['max_file_uploads'];
 				$html .= "<input class='max_file_uploads' type='hidden' value='{$max_file_uploads}' />";
 				if ( count( $meta ) >= $max_file_uploads )
-					$class = RW_Meta_Box::add_cssclass( 'hidden', $class );
+					$classes[] = 'hidden';
 			}
 
-			$html .= "<h4 class='rwmb-uploaded-title'>{$i18n_msg}</h4>";
-			$html .= "<ul class='rwmb-images rwmb-uploaded'>";
-			foreach ( $meta as $image )
-			{
-				$html .= self::img_html( $image );
-			}
-			$html .= '</ul>';
+			$html .= self::get_uploaded_images( $meta, $field );
 
 			// Show form upload
-			$html .= "
-				<h4>{$i18n_title}</h4>
-				<div id='{$img_prefix}-dragdrop' class='{$class}'>
-					<div class = 'rwmb-drag-drop-inside'>
-						<p>{$i18n_drop}</p>
-						<p>{$i18n_or}</p>
-						<p><input id='{$img_prefix}-browse-button' type='button' value='{$i18n_select}' class='button' /></p>
+			$html .= sprintf(
+				'<div id="%s-dragdrop" class="%s">
+					<div class = "drag-drop-inside">
+						<p class="drag-drop-info">%s</p>
+						<p>%s</p>
+						<p class="drag-drop-buttons"><input id="%s-browse-button" type="button" value="%s" class="button" /></p>
 					</div>
-				</div>
-			";
+				</div>',
+				$img_prefix,
+				implode( ' ', $classes ),
+				$i18n_drop,
+				$i18n_or,
+				$img_prefix,
+				$i18n_select
+			);
 
 			$html .= '</div>';
 
 			return $html;
+		}
+
+		/**
+		 * Get field value
+		 * It's the combination of new (uploaded) images and saved images
+		 *
+		 * @param array $new
+		 * @param array $old
+		 * @param int   $post_id
+		 * @param array $field
+		 *
+		 * @return array|mixed
+		 */
+		static function value( $new, $old, $post_id, $field )
+		{
+			$new = (array) $new;
+			return array_unique( array_merge( $old, $new ) );
 		}
 	}
 }

@@ -76,43 +76,31 @@ if ( ! class_exists( 'RWMB_File_Field' ) )
 		static function html( $html, $meta, $field )
 		{
 			$i18n_delete = _x( 'Delete', 'file upload', 'rwmb' );
-			$i18n_title  = _x( 'Upload files', 'file upload', 'rwmb' );
-			$i18n_more   = _x( '+ Add new file', 'file upload', 'rwmb' );
 
 			$html = wp_nonce_field( "rwmb-delete-file_{$field['id']}", "nonce-delete-file_{$field['id']}", false, false );
 
-			// Uploaded files
-			if ( ! empty( $meta ) )
+			if ( $meta )
 			{
 				$html .= '<ol class="rwmb-uploaded">';
 				$li = '<li>%s (<a title="%s" class="rwmb-delete-file" href="#" data-field_id="%s" data-attachment_id="%s">%s</a>)</li>';
 
-				foreach ( $meta as $attachment_id )
-				{
-					$attachment = wp_get_attachment_link( $attachment_id );
-					$html .= sprintf(
-						$li,
-						$attachment,
-						$i18n_delete,
-						$field['id'],
-						$attachment_id,
-						$i18n_delete
-					);
-				}
+				$attachment = wp_get_attachment_link( $meta );
+				$html .= sprintf(
+					$li,
+					$attachment,
+					$i18n_delete,
+					$field['id'],
+					$meta,
+					$i18n_delete
+				);
 
 				$html .= '</ol>';
 			}
 
 			// Show form upload
 			$html .= sprintf(
-				'<h4>%s</h4>
-				<div class="new-files">
-					<div class="file-input"><input type="file" name="%s[]" /></div>
-					<a class="rwmb-add-file" href="#"><strong>%s</strong></a>
-				</div>',
-				$i18n_title,
-				$field['id'],
-				$i18n_more
+				'<input type="file" name="%s" />',
+				$field['field_name']
 			);
 
 			return $html;
@@ -131,11 +119,14 @@ if ( ! class_exists( 'RWMB_File_Field' ) )
 		static function value( $new, $old, $post_id, $field )
 		{
 			$name = $field['id'];
-			if ( empty( $_FILES[ $name ] ) )
+			if ( empty( $_FILES[$name] ) )
 				return $new;
 
 			$new = array();
-			$files	= self::fix_file_array( $_FILES[ $name ] );
+			if ( $field['clone'] )
+				$files = self::fix_file_array( $_FILES[$name] );
+			else
+				$files = array( $_FILES[$name] );
 
 			foreach ( $files as $file_item )
 			{
@@ -164,7 +155,7 @@ if ( ! class_exists( 'RWMB_File_Field' ) )
 				}
 			}
 
-			return array_unique( array_merge( $old, $new ) );
+			return $field['clone'] ? $new : array_shift( $new );
 		}
 
 		/**
@@ -197,11 +188,11 @@ if ( ! class_exists( 'RWMB_File_Field' ) )
 		 *
 		 * @return array
 		 */
-		static function normalize_field( $field )
-		{
-			$field['multiple'] = true;
-			$field['std'] = empty( $field['std'] ) ? array() : $field['std'];
-			return $field;
-		}
+//		static function normalize_field( $field )
+//		{
+//			$field['multiple'] = true;
+//			$field['std'] = empty( $field['std'] ) ? array() : $field['std'];
+//			return $field;
+//		}
 	}
 }
