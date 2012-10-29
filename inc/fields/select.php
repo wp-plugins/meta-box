@@ -2,18 +2,18 @@
 // Prevent loading this file directly
 defined( 'ABSPATH' ) || exit;
 
-if ( ! class_exists( 'RWMB_Select_Field' ) )
+if ( !class_exists( 'RWMB_Select_Field' ) )
 {
 	class RWMB_Select_Field
 	{
 		/**
 		 * Enqueue scripts and styles
 		 *
-		 * @return	void
+		 * @return void
 		 */
-		static function admin_enqueue_scripts( )
+		static function admin_enqueue_scripts()
 		{
-			wp_enqueue_style( 'rwmb-select', RWMB_CSS_URL.'select.css', RWMB_VER );
+			wp_enqueue_style( 'rwmb-select', RWMB_CSS_URL . 'select.css', array(), RWMB_VER );
 		}
 
 		/**
@@ -27,9 +27,6 @@ if ( ! class_exists( 'RWMB_Select_Field' ) )
 		 */
 		static function html( $html, $meta, $field )
 		{
-			if ( ! is_array( $meta ) )
-				$meta = (array) $meta;
-
 			$html = sprintf(
 				'<select class="rwmb-select" name="%s" id="%s"%s>',
 				$field['field_name'],
@@ -71,7 +68,12 @@ if ( ! class_exists( 'RWMB_Select_Field' ) )
 		static function meta( $meta, $post_id, $saved, $field )
 		{
 			$single = $field['clone'] || !$field['multiple'];
-			return (array) get_post_meta( $post_id, $field['id'], $single );
+			$meta = get_post_meta( $post_id, $field['id'], $single );
+			$meta = ( !$saved && '' === $meta || array() === $meta ) ? $field['std'] : $meta;
+
+			$meta = array_map( 'esc_attr', (array) $meta );
+
+			return $meta;
 		}
 
 		/**
