@@ -123,7 +123,8 @@ function rwmb_meta( $key, $args = array(), $post_id = null )
 	) );
 
 	// Set 'multiple' for fields based on 'type'
-	$args['multiple'] = in_array( $args['type'], array( 'checkbox_list', 'file', 'file_advanced', 'image', 'image_advanced', 'plupload_image', 'thickbox_image' ) );
+	if ( !isset( $args['multiple'] ) )
+		$args['multiple'] = in_array( $args['type'], array( 'checkbox_list', 'file', 'file_advanced', 'image', 'image_advanced', 'plupload_image', 'thickbox_image' ) );
 
 	$meta = get_post_meta( $post_id, $key, !$args['multiple'] );
 
@@ -144,19 +145,16 @@ function rwmb_meta( $key, $args = array(), $post_id = null )
 	// Get uploaded images info
 	elseif ( in_array( $args['type'], array( 'image', 'plupload_image', 'thickbox_image', 'image_advanced' ) ) )
 	{
+		global $wpdb;
+
+		$meta = $wpdb->get_col( $wpdb->prepare( "
+			SELECT meta_value FROM $wpdb->postmeta
+			WHERE post_id = %d AND meta_key = '%s'
+			ORDER BY meta_id ASC
+		", $post_id, $key ) );
+
 		if ( is_array( $meta ) && !empty( $meta ) )
 		{
-			global $wpdb;
-			$meta = implode( ',', $meta );
-
-			// Re-arrange images with 'menu_order'
-			$meta = $wpdb->get_col( "
-				SELECT ID FROM {$wpdb->posts}
-				WHERE post_type = 'attachment'
-				AND ID in ({$meta})
-				ORDER BY menu_order ASC
-			" );
-
 			$images = array();
 			foreach ( $meta as $id )
 			{
@@ -237,7 +235,7 @@ function rwmb_image_info( $id, $args = array() )
 	if ( empty( $img_src ) )
 		return false;
 
-	$attachment = &get_post( $id );
+	$attachment = get_post( $id );
 	$path = get_attached_file( $id );
 	return array(
 		'ID'          => $id,
@@ -278,8 +276,8 @@ function rwmb_meta_map( $key, $args = array(), $post_id = null )
 
 	// Map parameters
 	$args = wp_parse_args( $args, array(
-		'width'        => 640,
-		'height'       => 480,
+		'width'        => '640px',
+		'height'       => '480px',
 		'zoom'         => $parts[2], // Default to 'zoom' level set in admin, but can be overwritten
 		'marker'       => true,      // Display marker?
 		'marker_title' => '',        // Marker title, when hover
@@ -292,15 +290,16 @@ function rwmb_meta_map( $key, $args = array(), $post_id = null )
 	$html = sprintf(
 		'<div id="rwmb-map-canvas-%d" style="width:%s;height:%s"></div>',
 		$counter,
-		$args['width'] . 'px',
-		$args['height'] . 'px'
+		$args['width'],
+		$args['height']
 	);
-	$html .= '<script src="https://maps.googleapis.com/maps/api/js?sensor=false"></script>';
+
+	// Load Google Maps script only when needed
+	$html .= '<script>if ( typeof google !== "object" || typeof google.maps !== "object" )
+				document.write(\'<script src="//maps.google.com/maps/api/js?sensor=false"><\/script>\')</script>';
 	$html .= '<script>
-		(function()
+		( function()
 		{
-			function initialize()
-			{
 	';
 
 	$html .= sprintf( '
@@ -342,10 +341,7 @@ function rwmb_meta_map( $key, $args = array(), $post_id = null )
 		}
 	}
 
-	$html .= '
-			}
-			google.maps.event.addDomListener(window, "load", initialize);
-		}());
+	$html .= '} )();
 		</script>';
 
 	$counter++;
