@@ -56,7 +56,7 @@ See all premium extensions [here](http://metabox.io).
 
 ### Plugin Links
 
-- [Project Page](http://metabox.io/meta-box/)
+- [Project Page](http://metabox.io)
 - [Documentation](http://metabox.io/documentation/)
 - [Report Bugs/Issues](https://github.com/rilwis/meta-box/issues)
 - [Premium Extensions](http://metabox.io)
