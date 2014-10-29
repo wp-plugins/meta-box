@@ -4,10 +4,10 @@ Donate link: http://www.deluxeblogtips.com/donate
 Tags: meta-box, custom-fields, custom-field, meta, meta-boxes
 Requires at least: 3.5
 Tested up to: 4.0
-Stable tag: 4.3.10
+Stable tag: 4.3.11
 License: GPLv2 or later
 
-Meta Box plugin is a complete tool to create meta box and custom fields in WordPress: lightweight, powerful and easy-to-use.
+Meta Box plugin is a complete tool to create meta box and custom fields in WordPress: lightweight, powerful, easy-to-use and can be extended with extensions.
 
 == Description ==
 
@@ -15,34 +15,10 @@ Meta Box plugin provides powerful API to implement custom meta boxes and custom 
 
 ### Features
 
-* Easily registers multiple custom meta boxes for posts, pages or custom post types
+* Easily register multiple custom meta boxes for posts, pages or custom post types
+* Supports a lot of [field types](http://metabox.io/docs/define-fields/)
 * Has built-in hooks which allow you to change the appearance and behavior of meta boxes
-* Easily integrated with themes
-
-**You can also add more features to meta box via [premium extensions](http://metabox.io)**.
-
-### Supported fields
-
-- button
-- checkbox, checkbox_list
-- color
-- date, time, datetime
-- divider
-- file, file_advanced, file_input (allow to upload or paste file URL)
-- heading
-- hidden
-- image, thickbox_image, plupload_image, image_advanced, image_select (or radio image)
-- map
-- password
-- post
-- radio
-- select, select_advanced (uses [select2](http://ivaynberg.github.com/select2/))
-- slider, range
-- taxonomy
-- taxonomy_advanced
-- text, url, email, number, oembed
-- textarea
-- wysiwyg
+* Easily integrate with themes
 
 ### Premium Extensions
 
@@ -56,7 +32,7 @@ See all premium extensions [here](http://metabox.io).
 
 ### Plugin Links
 
-- [Project Page](http://metabox.io)
+- [Project Page](http://metabox.io/meta-box/)
 - [Documentation](http://metabox.io/docs/)
 - [Report Bugs/Issues](https://github.com/rilwis/meta-box/issues)
 - [Premium Extensions](http://metabox.io)
@@ -75,6 +51,12 @@ To getting started with the plugin API, please read [this tutorial](http://metab
 1. Supported fields
 
 == Changelog ==
+
+= 4.3.11 =
+* Bug fix: use field id instead of field_name for wysiwyg field
+* Improvement: allow to sort files
+* Improvement: use 'meta-box' text domain instead of 'rwmb'
+* Improvement: coding standards
 
 = 4.3.10 =
 * Bug fix: upload & reorder for image fields
