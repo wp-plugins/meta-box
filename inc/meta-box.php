@@ -278,7 +278,7 @@ if ( ! class_exists( 'RW_Meta_Box' ) )
 		function save_post( $post_id )
 		{
 			// Check if this function is called to prevent duplicated calls like revisions, manual hook to wp_insert_post, etc.
-			if ( $this->saved === true )
+			if ( true === $this->saved )
 				return;
 			$this->saved = true;
 
@@ -369,6 +369,7 @@ if ( ! class_exists( 'RW_Meta_Box' ) )
 			foreach ( $fields as &$field )
 			{
 				$field = wp_parse_args( $field, array(
+					'id'          => '',
 					'multiple'    => false,
 					'clone'       => false,
 					'std'         => '',
@@ -381,10 +382,6 @@ if ( ! class_exists( 'RW_Meta_Box' ) )
 					'placeholder' => '',
 				) );
 
-				do_action( 'rwmb_before_normalize_field', $field );
-				do_action( "rwmb_before_normalize_{$field['type']}_field", $field );
-				do_action( "rwmb_before_normalize_{$field['id']}_field", $field );
-
 				// Allow field class add/change default field values
 				$field = call_user_func( array( self::get_class_name( $field ), 'normalize_field' ), $field );
 
@@ -395,10 +392,6 @@ if ( ! class_exists( 'RW_Meta_Box' ) )
 				$field = apply_filters( 'rwmb_normalize_field', $field );
 				$field = apply_filters( "rwmb_normalize_{$field['type']}_field", $field );
 				$field = apply_filters( "rwmb_normalize_{$field['id']}_field", $field );
-
-				do_action( 'rwmb_after_normalize_field', $field );
-				do_action( "rwmb_after_normalize_{$field['type']}_field", $field );
-				do_action( "rwmb_after_normalize_{$field['id']}_field", $field );
 			}
 
 			return $fields;
